@@ -1,0 +1,2068 @@
+FORMAT: 1A
+HOST: http://plenar.io/v1/api
+
+# Plenario
+
+## Welcome!
+Plenario is a centralized hub for open datasets from around the world, ready to search and download.
+
+If you’d rather access Plenario’s data through a visual interface, check out the <a href="http://plenar.io/explore/discover"> Data Explorer </a>.
+
+The Plenario API can be used to perform custom geospatial and temporal queries.
+
+A few things to know:
+
+* All API calls should be made with HTTP GET
+
+* All methods are accessed via: http://plenar.io/v1/api/<ENDPOINT>
+
+* All API responses default to JSON format, but you can specify alternate formats specific to some endpoints.
+
+# Group Concepts
+
+There are a few basic concepts to keep in mind as you work with the Plenario API.
+
+## Space and time [/detail/{?dataset_name,shape,boundaries_neighborhoods__filter}]
+
+All data in Plenario is spatial. If it’s in Plenario, you can put it on a map. Because Plenario makes sure all of its data lives on the same map, you can apply common spatial operations to different datasets. For example, you can take two datasets - crimes and food inspections in Chicago - and extract only the events that happened in the neighborhood of Logan Square.
+
+Many - but not all - of Plenario’s datasets also have a temporal component. Similarly, Plenario makes sure those datasets live on the same timeline. That makes it easy to aggregate datasets up to the same temporal unit and compare trends.
+
+### Filtering datasets by political boundaries [GET]
+
++ Parameters
+    + `dataset_name`: `crimes_2001_to_present` (string) - dataset name
+    + shape: `boundaries_neighborhoods` (string) - shape
+    + `boundaries_neighborhoods__filter`: `\{"op": "eq", "col": "pri_neigh", "val": "Logan Square"\}` (string) - boundries
+
++ Response 200 (application/json)
+
+            [
+                "objects": [
+                    {
+                        "id": 22444,
+                        "case_number": "HZ247790",
+                        "date": "2016-05-02T01:35:00",
+                        "block": "059XX N RIDGE AVE",
+                        "iucr": "0110",
+                        "primary_type": "HOMICIDE",
+                        "description": "FIRST DEGREE MURDER",
+                        "location_description": "STREET",
+                        "arrest": false,
+                        "domestic": false,
+                        "beat": 2012,
+                        "district": 20,
+                        "ward": 40,
+                        "community_area": "77",
+                        "fbi_code": "01A",
+                        "x_coordinate": 1164091,
+                        "y_coordinate": 1939858,
+                        "year": 2016,
+                        "updated_on": "2016-05-09T15:51:54",
+                        "latitude": 41.990596764,
+                        "longitude": -87.671796648,
+                        "location": "(41.990596764, -87.671796648)"
+                    },
+            ]
+            
+            
+##Creating timeseries [/timeseries/{?obs_date__ge,obs_date__le,dataset_name__in,food_inspections,agg}]
+
+### Timeseries aggregated by day [GET]
+
++ Parameters
+    + `obs_date__ge`:`2015-10-12`(string) - start of date range
+    + `obs_date__le`: `2015-11-12` (string) - end of date range
+    + `dataset_name__in`: `crimes_2001_to_present` (string) - dataset name
+    + `food_inspections`: `` (string) - inspection
+    + agg: day (string) - aggregate by
+       
++ Response 200 (application/json)
+        
+        
+        [
+            {
+                "meta": {
+                    "query": {
+                        "data_type": "json", 
+                        "obs_date__ge": "2015-10-12", 
+                        "dataset": null, 
+                        "dataset_name__in": ["crimes_2001_to_present", "food_inspections"], 
+                        "agg": "day", 
+                        "job": false, 
+                        "obs_date__le": "2015-11-12", 
+                        "geom": null
+                    }, 
+                    "status": "ok", 
+                    "message": []
+                    }, 
+                    "objects": [
+                        {
+                            "update_freq": "daily", 
+                            "attribution": "Chicago Police Department", 
+                            "human_name": "Crimes - 2001 to present", 
+                            "contributor_email": null, 
+                            "date_added": "2014-09-10 22:51:19.214726", 
+                            "last_update": "2017-07-25T13:02:33.622204", 
+                            "source_url": "http://data.cityofchicago.org/api/views/ijzp-q8t2/rows.csv?accessType=DOWNLOAD", 
+                            "contributor_organization": null, 
+                            "bbox": {
+                                    "type": "Polygon", 
+                                    ...
+                                    }
+                        }
+                    ]
+                }
+            }
+        ]
+
+
+
+## Group Dataset Types
+
+Plenario currently supports three types of datasets: **event** datasets, **shape** datasets, and **sensor network** datasets. The type of a dataset lets you know what kind of spatial and temporal information it is guaranteed to have.
+
+## Events [/datasets]
+
+All records in event datasets have a temporal component (a point in time) and a spatial component (a point in space). For example, every record in the Chicago food inspections dataset represents one inspection. An inspector walked into a restaurant - represented as a latitude longitude point - at a time - represented as a timestamp.
+
+Of course, a point and a timestamp are just the minimum information event datasets need. For example, the food inspections dataset also has a column with the name of the restaurant that was inspected and another column for whether the restaurant passed the inspection.
+
+### See all event datasets in Plenario [GET]
+
++ Response 200 (application/json)
+
+        [
+            
+            {
+            "meta": {
+                "query": {},
+                "status": "ok",
+                "message": [],
+                "total": 137
+            },
+            "objects": [
+                {
+                    "update_freq": "yearly",
+                    "attribution": "FEC",
+                    "human_name": "new_hampshire_final.csv",
+                    "columns": [
+                    {
+                      "field_type": "VARCHAR",
+                      "field_name": "cand_id"
+                    },
+                    {
+                      "field_type": "VARCHAR",
+                      "field_name": "latlong"
+                    },
+                    ...
+                }
+            }
+        ]
+        
+        
+## Shapes [/shapes]
+
+All records in shape datasets have a spatial component. While events are always tied to a point in space, shape datasets can have different spatial types, like polygons to represent neighborhood boundaries or line segments to represent bike routes. Shape datasets do not have a temporal component.
+
+Shape datasets usually have extra columns that aren’t spatial. For example, the shape dataset with the borders of Chicago’s neighborhoods has a column with the neighborhoods’ names.
+
+
+### See all shape datasets in Plenario [GET]
+
++ Response 200 (application/json)
+
+        [
+            {
+            "meta": {
+                "status": "ok",
+                "message": ""
+            },
+            "objects": [
+                {
+                "date_added": "2016-04-20",
+                "update_freq": "yearly",
+                "attribution": "City of Chicago",
+                "description": "Major streets in Chicago. ",
+                "human_name": "Major Streets",
+                "bbox": "{\"type\":\"Polygon\",\"coordinates\":[[[-87.9320823353882,41.6445840278876],[-87.9320823353882,42.0230311371132],[-87.5244576278484,42.0230311371132],[-87.5244576278484,41.6445840278876],[-87.9320823353882,41.6445840278876]]]}",
+                "source_url": "https://data.cityofchicago.org/download/ueqs-5wr6/application/zip",
+                "view_url": "",
+                "columns": [
+                    {
+                        "field_type": "INTEGER",
+                        "field_name": "objectid"
+                    },
+                    ...
+                }
+            ]
+        ]
+
+
+## Sensor Networks [/sensor-networks]
+
+Sensor networks are collections of sensor nodes that report on physical phenomena like temperature, air quality, or traffic. In particular, Plenario reports observations from Chicago’s <a href="http://arrayofthings.github.io/"> Array of Things </a>sensor network. Sensor observations have a spatial component (a node’s location) and a temporal component (when the observation was taken).
+    
+### See all sensor networks in Plenario [GET]
+
++ Response 200 (application/json)
+
+        [
+            {"data": [
+                        {
+                            "features": [
+                                "gas_concentration",
+                                "magnetic_field",
+                                "relative_humidity",
+                                "temperature"
+                            ],
+                            "info": null,
+                            "name": "plenario_development",
+                            "nodes": [
+                                "node_dev_1",
+                                "node_dev_2"
+                            ],
+                            "sensors": [
+                                "sensor_dev_1",
+                                "sensor_dev_2 ",
+                                "sensor_dev_3",
+                                "sensor_dev_4"
+                            ]
+                        },
+                        ...
+                    ]
+            }
+        ]
+        
+        
+## Group Datasets That Don't Fit
+
+You can probably think of examples of spatial datasets that don’t fit the above types. What about neighborhood unemployment rates? That has a static spatial component plus a timeseries. Or urban bike share trips? A single record should have a point in space and a timestamp for both the origin and the destination. We can’t support these fully yet, but we’re always working to expand the types of datasets Plenario can handle.
+
+# Group Event and Shape Data
+
+Because Event and Shape datasets are similar in structure (they’re both tabular) they share many of the same query options. We cover them together in this section.
+
+Sensor network data, on the other hand, is not tabular. It comes in to Plenario as a stream of data, not a tabular file. So queries against sensor networks look a bit different, and will be covered in the next section
+
+## Time Filtering [/detail-aggregate/?agg=year&dataset_name=crimes_2001_to_present&obs_date__ge=2012-1-1]
+
+For endpoints that accept temporal filters, you can provide the query parameters `obs_date__ge` (observation date greater than or equal to) and `obs_date__le` (less than or equal to). Both must be formatted as **YYYY-MM-DD**.
+
+| paramter      |description        | default   |
+| --------------|:-----------------:| ---------:|
+| obs_date_ge   |Start of date range|90 days ago|
+| obs_date_le   |end of data range  | now       |
+
+### Query over 2015 [GET]
+
++ Response 200 (application/json)
+
+        [
+        
+        ]
+
+## Spcae Filtering [/detail/{?dataset_name,obs_date__ge,crimes_2001_to_present__filter}]
+
+For endpoints that accept spatial filters, you can provide the `location_geom__within` parameter. It must be a URL encoded <a href="http://geojson.org/"> GeoJSON </a> polygon or multipolygon.
+
+This is a nice site to <a href="http://geojson.org/"> generate geojson </a>.
+
+### Query over the author’s block [GET]
+
++ Parameters
+    + `dataset_name` : `crimes_2001_to_present` (string) - dataset name
+    + `obs_date__ge`: `2016-5-1` (string) - start date
+    + `crimes_2001_to_present__filter`: `\{"op": "eq", "col": "primary_type", "val": "HOMICIDE"\}` (string) - filter
+    
++ Response 200 (application/json)
+
+        [
+        ]
+
+## Group Specifying a Dataset 
+
+Many endpoints require you to specify a dataset to query. In that case, specify the `dataset_name` query parameter. If you can specify more than one dataset, you can use `dataset_name__in` to provide a list of dataset names.
+
+## Asynchronous Jobs [/datasets?job=true]
+
+You can add `job=true` to launch a query as an asynchronous job. Plenario will run your query as a background task and give you a ticket. You can check on your job’s progress at `/v1/api/jobs/{ticket}`. When the job is complete, `/v1/api/jobs/{ticket}` will contain the result of your job in the `result` field.
+
+This can be useful when you want to launch a very large query against Plenario, like aggregating a large event dataset over a large shape dataset. It might take too long for Plenario to process a massive request in a synchronous HTTP call. If you notice that a call is timing out, try running it as an asynchronous job instead.
+
+``` http://plenar.io/v1/api/datasets?job=true ```
+
+    > This will return a jobs ticket instead of the usual datasets endpoint. You can then use the link provided by the ticket to access the job status and results.
+
+* Job functionality, enabled by `jobs=true`, is undergoing maintenance and currently disabled. 
+
+### Invoke the Jobs interface by appending job=true to your query [GET]
+
++ Response 200 (application/json)
+
+        [
+        ]
+
+
+## Group Attribute Operators
+
+When you make a query against a specific dataset, you can filter against that dataset’s attributes. You can find out the name and types of each dataset’s attributes through the event and shape metadata endpoints. For a detailed list of all `field_type` options, consult the table at the bottom of <a href="https://www.postgresql.org/docs/9.3/static/datatype.html" target="_blank" >this PostgreSQL documentation </a>.
+
+You can use the following binary operators:
+
+| operator      |description                                        |
+| --------------|:-------------------------:                        |
+| eq            |equal to(==)                                       |
+| gt            |greater than (>)                                   |
+| ge            |greater than or equal to (>=)                      |
+| lt            |less than (<)                                      |
+| le            |less than or equal to (<=)                         |
+| ne            |not equal(!=)                                      |
+| in            |within a list of provided values like 0560,0110    |
+| like          |Match string pattern                               |
+| ilike         |Match string pattern, case insensitive             |
+
+    > Use the “columns” information from each dataset’s metadata to find the name
+
+```
+...
+"columns": [
+    {
+        "field_type": "DOUBLE PRECISION",
+        "field_name": "shape_area"
+    },
+    {
+        "field_type": "VARCHAR",
+        "field_name": "pri_neigh"
+    },
+    {
+        "field_type": "VARCHAR",
+        "field_name": "sec_neigh"
+    },
+    {
+        "field_type": "DOUBLE PRECISION",
+        "field_name": "shape_len"
+    }
+
+], ...
+
+```
+
+    > LIKE examples:
+    
+``` “%rat%” matches “rat poisoning” and “crater”. “jo_” matches “joe” and “job” but not “josephine” ```
+
+    * `like` and `ilike` match patterns using the SQL LIKE operator. That lets you use `%` and `_` as wildcard characters. `%` matches a string of any length, while `_` matches exactly one character.
+
+## Attribute Filtering [/detail/{?dataset_name,crimes_2001_to_present__filter,shape,boundaries_neighborhoods__filter}]
+
+A single conditions that applies to one feature can be expressed in the following syntax: `{"op":"<operator>", "prop":"<property>", "val":"<target_value>"}`
+
+You can also apply ANDs and ORs to conditions with the following syntax: `{"op": <"and" or "or">, "val": [<list of conditions>]}`. You can nest conditions arbitrarily deep.
+
+You can specify filters as query parameters in your GET requests as `<dataset_name>__filter={filter}`. You need to specify which dataset a filter applies to because a single query might include more than one dataset.
+
+    > Filter Chicago Department of Health complaints to only return records with the word “asbestos” in the complaint description
+
+``` {"op":"ilike", "col":"complaint_detail", "val":"%asbestos%"} ```
+
+    > Filter Chicago crimes dataset to only include narcotics crimes that took place on a street or sidewalk
+    
+``` 
+{"op": "and", "val": [
+    {"op": "eq", "col": "primary_type", "val": "NARCOTICS"},
+    {"op":"or", "val": [
+        {"op":"eq","col":"location_description","val":"STREET"},
+        {"op":"eq","col":"location_description","val":"SIDEWALK"}
+        ]}
+    ]
+}
+```
+
+__Attribute Filtering (Old Syntax)__
+
+*This syntax is deprecated.* 
+
+The original method for applying conditions to attributes of a dataset is to provide one query parameter for each condition in the form of `[col]__[op]=[val].` The trouble with this syntax is that you can’t specify whether you want to combine the conditions with ANDs or ORs. So this syntax assumes you just want to AND things together. You also can’t specify which dataset a condition should apply to.
+
+``` pri_neigh__in=%3DLogan%20Square%2CHumboldt%20Park ```
+    
+*  You cannot mix the new and old style attribute filtering syntaxes. If you do, Plenario will ignore the old style parameters and only use the new style.
+
+__Response Format__
+
+All JSON API responses return their data in the `objects` block. Additional information is returned in the `meta` block:
+
+| Parameter     |Description                                                            |
+| --------------|:-------------------------:                                            |
+| status        |**ok** if the query is successful, **error** if not.                   |
+| query         |Original query parameters passed in.                                   |
+| message       |If `status` is **error**, a detailed message as to what went wrong.    |
+                                       
+#### Applying filters to the Chicago crimes and neighborhoods datasets [GET]
+
++ Parameters
+    + `dataset_name`:`crimes_2001_to_present`(string) - dataset name
+    + `crimes_2001_to_present__filter`: `\{"op": "eq", "col": "primary_type", "val": "HOMICIDE"\}` (string) - end of date range
+    + shape : `boundaries_neighborhoods` (string) - shape 
+    + `boundaries_neighborhoods__filter` : `\{"op": "in", "col": "pri_neigh", "val": "Logan Square,Humboldt Park"\}` (string) boundries
+
++ Response 200 (application/json)
+
+        [
+            {
+            "objects": [
+                {
+                  "id": 23457,
+                  "case_number": "JA349761",
+                  "date": "2017-07-16T21:40:00",
+                  "block": "029XX W AUGUSTA BLVD",
+                  "iucr": "0110",
+                  "primary_type": "HOMICIDE",
+                  "description": "FIRST DEGREE MURDER",
+                  "location_description": "STREET",
+                  "arrest": false,
+                  "domestic": false,
+                  "beat": 1211,
+                  "district": 12,
+                  "ward": 26,
+                  "community_area": 24,
+                  "fbi_code": "01A",
+                  "x_coordinate": 1156298,
+                  "y_coordinate": 1906508,
+                  "year": 2017,
+                  "updated_on": "2017-07-23T15:50:19",
+                  "latitude": 41.899243731,
+                  "longitude": -87.701365533,
+                  "location": "(41.899243731, -87.701365533)"
+                },
+                ...
+            }
+        ]
+
+## Group Metadata Endpoints
+
+## Event Datasets [/datasets/]
+
+`GET /v1/api/datasets/ `
+
+Used to list available event datasets and fetch their metadata.
+
+##### Bounding Boxes
+
+Each event dataset’s metadata contains a spatial and temporal bounding box, the smallest timespan and rectangle in which all events in the dataset are contained. If you apply spatial or temporal filters to this endpoint, it will only return datasets with events that fell within your filters. It is often helpful to use these bounding boxes to narrow down a search over all the datasets in Plenario.
+
+##### Common Query Syntax
+
+By default, this endpoint returns every available event dataset.
+
+| Paramter Name                  |Required ?        | Default    |
+|:---------------------:         |------------------|-----------:| 
+| dataset_name/dataset_name__in  |no                |none        |
+| location_geom__within          |no                |none        |
+| obs_date__ge & obs_date__le    |no                |none        |
+
+__Responses__
+
+One record per event dataset.
+
+ Attribute Name         |Attribute Description                                                                  |
+|:---------------------:|------------------------------:                                                        |    
+| attribution           |The data provider                                                                      |
+| description           |Verbose, official description of the dataset                                           |
+| view_url              |A URL where you can learn more about the dataset.                                   |
+| columns               |Name and type of each column.                                                       |
+| obs_from              |Oldest date available in the dataset.                                                  |
+| bbox                  |The smallest rectangle that contains every event in this dataset. (GeoJSON polygon)    |
+| human_name            |Human-friendly name for the dataset.                                                   |
+| obs_to                |Newest date available in the dataset.                                                  |
+| source_url            |If available, the URL where the data was originally sourced.                           |
+| dataset_name          |Machine name for the dataset. The name you need to supply in other endpoints.          |
+| update_freq           |How often Plenario checks the source dataset for updates.                              |
+
+### List of all event [GET]
+
++ Response 200 (application/json)
+  
+        [
+            {
+                "meta": {
+                    "status": "ok",
+                    "query": { },
+                    "message" : [
+                        [ ]
+                    ],
+                    "total": 118
+                },
+                "objects": [
+                    {
+                        "attribution": "Los Angeles Police Department",
+                        "description": "LAPD Crime and Collision Raw Data for 2013",
+                        "view_url": "https://data.lacity.org/api/views/iatr-8mqm/rows",
+                        "columns": [
+                            {
+                                "field_type": "VARCHAR",
+                                "field_name": "status"
+                            },
+                            {
+                                "field_type": "DATE",
+                                "field_name": "date_occ"
+                            }
+                        ]
+                    }
+                ],
+                "last_update": "2015-04-17T19:30:44.922015",
+                "obs_from": "2013-01-01",
+                "bbox": {
+                    "type": "Polygon",
+                    "coordinates": [
+                    [
+                        [
+                            -117.7071,
+                            33.706
+                        ],
+                       
+                    ]
+                ]
+                },
+                "human_name": "LAPD Crime and Collision Raw Data for 2013",
+                "obs_to": "2013-12-31",
+                "date_added": "2015-04-17T19:30:44.922015",
+                "source_url": "https://data.lacity.org/api/views/iatr-8mqm/rows.csv?accessType=DOWNLOAD",
+                "dataset_name": "lapd_crime_and_collision_raw_data_for_2013",
+                "update_freq": "yearly"
+            }    
+        ]
+                
+                
+## Shape Datasets [/shapes/]
+
+`GET /v1/api/shapes `
+
+Used to list available shape datasets and fetch their metadata.
+
+##### Bounding Boxes
+
+Each shape dataset’s metadata contains a spatial bounding box, the smallest rectangle in which all shapes in the dataset are contained. If you apply a spatial filter to this endpoint, it only returns datasets with shapes within the box. Furthermore, the num_shapes response parameter will only count the shapes that were contained by or intersected your filter.
+
+##### Common Query Syntax
+
+Specify location_geom_within to only view metadata about shape datasets in a particular area.
+
+| Paramter Name                  |Required ?        | Default    |
+|:---------------------:         |------------------|-----------:| 
+| location_geom_within           |no                |none        |
+
+__Responses__
+
+One record per shape dataset.
+
+ Attribute Name         |Attribute Description                                                                      |
+|:---------------------:|------------------------------:                                                            |    
+| attribution           |The data provider                                                                          |
+| description           |Verbose, official description of the dataset                                               |
+| source_url            |If available, the URL where the data was originally sourced.                               |                                        
+| date_added            |the date the shape dataset was added to Plenario                                           |
+| human_name            |a nicer name to refer to the shape dataset in user interfaces                              |                                     
+| dataset_name          |the name by which you can query the shape dataset                                          |
+| update_freq           |Update frequency                                                                           |
+| columns               |Name and type of each column.                                                                  |
+
+### List available shape [GET]
+
++ Response 200 (application/json)
+
+        [
+            {
+                "meta": {
+                    "status": "ok",
+                    "message" : ""
+                },
+                "objects": [
+                    {
+                        "attributes": "City of Chicago",
+                        "description": "Major streets in Chicago. ",
+                        "view_url" : "",
+                        "num_shapes" : 16065,
+                        "source_url": "https://data.cityofchicago.org/download/ueqs-5wr6/application/zip",
+                        "bbox": "{\"type\":\"Polygon\",\"coordinates\":[...]}",
+                        "date_added": "2016-04-20",
+                        "human_name": "Major Streets",
+                        "dataset_name": "major_streets",
+                        "update_freq": "yearly",
+                        "columns": [{"field_type": "VARCHAR", "field_name": "street_nam"},{"field_type": "VARCHAR", "field_name": "direction"}]
+                    }  
+                ]
+            }    
+        ]
+
+## Dataset Fields [/fields/crimes_2001_to_present/]
+
+`GET /v1/api/fields/<dataset_name>/ `
+
+*This endpoint is deprecated in favor of /datasets.*
+
+Given an event dataset name, return all fields and their types.
+
+Gives you a listing of all the fields and their data types for the given dataset.
+
+##### Query Parameters
+
+This API endpoint has no query parameters.
+
+##### Responses
+
+ Attribute Name         |Attribute Description                                                                                                                  |
+|:---------------------:|------------------------------:                                                                                                        |    
+| field_type            |Postgres data type for given field.                                                                                                    |
+| field_name            |Name of database field. Useful for performing additional queries using the `/v1/api/detail-aggregate/` and `/v1/api/detail/ endpoints`.|                                    
+
+
+### Field definitions for Chicago crime report dataset [GET]
+
++ Response 200 (application/json)
+
+        [
+           {
+                "meta": {
+                    "status": "ok",
+                    "query": { },
+                    "message": [
+                    [ ]
+                    ],
+                    "total": 1
+                },
+                "objects": [
+                    {
+                        "field_type": "INTEGER",
+                        "field_name": "y_coordinate"
+                    },
+                    {
+                        "field_type": "INTEGER",
+                        "field_name": "year"
+                    },
+                    {
+                        "field_type": "BOOLEAN",
+                        "field_name": "domestic"
+                    },
+        ...
+                ]
+            }
+        ]
+
+##### Group Event Data Queries
+
+#### Event Records [/detail/{?dataset_name,obs_date__ge,crimes_2001_to_present__filter}]
+
+`GET /v1/api/detail `
+
+Query an event dataset and get back the raw individual records.
+
+__Common Query Syntax__
+
+| Paramter Name                 |Required ?        | Default                    |
+|:---------------------:        |------------------|-----------:                | 
+| dataset_name                  |yes               |n/a                         |
+| location_geom__within         |no                |none                        |
+| obs_date__ge & obs_date__le   |no                |90 days ago - today         |
+| [dataset_name]__filter        |no                |none                        |
+
+__Endpoint-Specific Parameters__
+
+| Paramter Name |Default            | Description                                                                                                   |
+|:--------------|------------------ |-----------:                                                                                                   | 
+| data_type     |json               |Response data format. Current options are json, geojson and csv                                                |
+| shape         |none               |Filter with a shape dataset                                                                                    |
+| offset        |none               |Used to paginate through results of more than 1000. Example: offset=1000 will fetch the second page of results.|
+| limit         |1000               |Set a custom limit on the amount of records returned; maximum is 10,000                                        |
+
+__Responses__
+
+The API responds with a list of raw records for the particular dataset. The fields returned will vary per dataset. By default, the response is limited to 1000 results; the absolute maximum is 10,000 results, so set a custom `limit` within those bounds if necessary. These results can still be paginated by using the `offset` parameter.
+
+ Attribute Name         |Attribute Description                              |
+|:---------------------:|------------------------------:                    |    
+| status                |Indicates query success, can be `ok` or `error`.   |
+| query                 |Shows values used in the query.                    |
+| message               |Reports errors or warnings (if any).               |
+| total                 |Total number of records found.                     |
+| objects               |Contains records                                   |
+
+__Filtering with a Shape Dataset__
+
+Use the shape parameter to specify the name of a shape dataset. Then the endpoint will only return events that intersect or are contained by shapes in the dataset. This feature is particularly useful when you apply filters to the dataset by adding a <shape_dataset_name>__filter parameter. For example, you can specify the Chicago neighborhoods shape dataset and specify a neighborhood in your filter to only fetch events from one neighborhood.
+
+__Response Formatting__
+
+By default, this endpoint returns data exactly as it was written in the source dataset. Behind the scenes, Plenario parses event datasets’ latitude and longitude columns to produce a geometry column that it uses internally. If you want to get the geometry Plenario has parsed, use the data_type parameter to specify geojson. Plenario will return each record as a GeoJSON point with the parsed latitude and longitude in the coordinates object and the original values in the attributes object.
+
+
+    > Only return events that happened in Logan Square
+    
+``` &shape=boundaries_neighborhoods&boundaries_neighborhoods__filter={"op": "eq", "col": "pri_neigh", "val": "Logan Square"} ```
+
+### All Chicago homicides since May 1st, 2016 [GET]
+
++ Parameters
+    + `dataset_name`: `crimes_2001_to_present` (string) - dataset name
+    + `obs_date__ge`: `2016-5-1` (date) - start date
+    + `crimes_2001_to_present__filter`: `\{"op": "eq", "col": "primary_type", "val": "HOMICIDE"\}` (string) - boundries
+
+
++ Response 200 (application/json)
+
+        [
+            {
+                 "meta": {
+                    "status": "ok",
+                    "query": {
+                        "obs_date__ge": "2016-05-01",
+                        "data_type": "json",
+                        "obs_date__le": "2016-07-01T14:49:32.720091",
+                        "iucr": "0110",
+                        "dataset": "crimes_2001_to_present",
+                        "shape": null,
+                        "geom": null,
+                        "offset": 0,
+                        "metatable": "meta_master"
+                    },
+                    "message": [ ],
+                    "total": 121
+                 },
+                "objects": [
+                    {
+                        "id": 22444,
+                        "case_number": "HZ247790",
+                        "date": "2016-05-02T01:35:00",
+                        "block": "059XX N RIDGE AVE",
+                        "iucr": "0110",
+                        "primary_type": "HOMICIDE",
+                        "description": "FIRST DEGREE MURDER",
+                        "location_description": "STREET",
+                        "arrest": false,
+                        "domestic": false,
+                        "beat": 2012,
+                        "district": 20,
+                        "ward": 40,
+                        "community_area": "77",
+                        "fbi_code": "01A",
+                        "x_coordinate": 1164091,
+                        "y_coordinate": 1939858,
+                        "year": 2016,
+                        "updated_on": "2016-05-09T15:51:54",
+                        "latitude": 41.990596764,
+                        "longitude": -87.671796648,
+                        "location": "(41.990596764, -87.671796648)"
+                    },
+
+                ]
+            }
+        ]
+   
+
+#### Group Bulk Export
+    
+`GET /v1/api/datadump`
+
+Because the raw data endpoint `/detail1` is designed to respond quickly, it is limited to 1000 observations. If you want to download all records of an event dataset that meet the filter you have provided, you can request a bulk export with `/datadump`.
+
+`/datadump` takes the same query parameters as `/detail`.
+
+__Shape Data Quries__
+
+## Shape Records
+
+`GET /v1/api/shapes/<dataset_name>`
+
+Request shapes from a shape dataset. Returns all records in the dataset by default. You can also apply a spatial filter or filter on attributes to request a subset.
+
+Common Query Syntax
+
+| Paramter Name                 |Required ?        | Default                    |
+|:---------------------:        |------------------|-----------:                | 
+| location_geom__within         |no                |none                        |
+| [dataset_name]__filter        |no                |none                        |
+
+Endpoint-Specific Parameters
+
+| Paramter Name         |Default       | Default                                                                |
+|:---------------------:|------------------|-----------:                                                            | 
+| data_type             |json              |`json` for GeoJSON, `shapefile` for ESRI Shapefile, or `kml` for KML    |
+
+
+## Temporal Aggregation 
+
+## Timeseries [/timeseries/?obs_date__ge=2010-1-1&obs_date__le=2015-12-31&dataset_name__in=crimes_2001_to_present,cdph_environmental_complaints&agg=year]
+
+`GET v1/api/timeseries `
+
+This endpoint creates timeseries over one or more event datasets by counting how many events fall into each time slice. You can set the unit of aggregation with the agg parameter.
+
+Common Query Syntax
+
+| Paramter Name                     |Required ?      | Default               |                                                           
+|:---------------------:            |----------------|-----------:           | 
+| dataset_name/dataset_name__in     |no              |every event dataset    |
+| location_geom__within             |no              |none                   |
+| obs_date__ge & obs_date__le       |no              |90 days ago - today    |
+| [dataset_name]__filter            |no              |none                   |
+
+Endpoint-Specific Paramters
+
+| Paramter Name         |Default        | Description                                                                                           |
+|:---------------------:|------------------|-----------:                                                                                        | 
+| agg                   |week              |Time resolution to aggregate observation counts by. Supported values: day,week, month, quarter,year |
+| data_type             |json              |Response data format. Current options are `json` and `csv`.                                                                       |
+
+__Response__
+
+The API responds with a list of datasets with a dense matrix of counts grouped by temporal aggregation. The actual timeseries values are inside of `items.` Many of the metadata attributes from `/datasets` are included as well.
+
+ Attribute Name         |Attribute Description                                  |
+|:---------------------:|------------------------------:                        |     
+| status                |Indicates query success, can be `ok` or `error`.       |
+| query                 |Shows values used in the query.                        |
+| message               |Reports errors or warnings (if any).                   |
+| dataset_name          |The dataset this timeseries was created from.          |
+| count                 |Total number of records found.                         |
+| datetime              |Date of aggregation                                    |
+| items                 |Counts of aggregated records and delimiting datetimes. |
+
+__Deprecated Version__
+
+`GET v1/api/detail-aggregate/ `
+
+*This endpoint is deprecated in favor of /timeseries*
+
+Just like `/timeseries`, except that it requires exactly one dataset through the `dataset_name` parameter.
+
+
+### Generate counts of crime [GET]
+
++ Response 200 (application/json)
+
+        [
+            {
+                "meta": {
+                    "status": "ok",
+                    "query": {
+                        "obs_date__ge": "2007-11-12",
+                        "data_type": "json",
+                        "obs_date__le": "2008-11-12",
+                        "agg": "year",
+                        "dataset": null,
+                        "dataset_name__in": [
+                            "crimes_2001_to_present",
+                            "cdph_environmental_complaints"
+                        ],
+                        "geom": null
+                    },
+                    "message": [ ]
+                },
+                "objects": [
+                    {
+                    "dataset_name": "cdph_environmental_complaints",
+                    "count": 6836,
+                    ...
+                    "items": [
+                        {
+                            "count": 1262,
+                            "datetime": "2010-01-01"
+                        },
+                        {
+                            "count": 1460,
+                            "datetime": "2011-01-01"
+                        },
+                        {
+                            "count": 1032,
+                            "datetime": "2012-01-01"
+                        },
+                        {
+                            "count": 1187,
+                            "datetime": "2013-01-01"
+                        },
+                        {
+                            "count": 1074,
+                            "datetime": "2014-01-01"
+                        },
+                        {
+                            "count": 821,
+                            "datetime": "2015-01-01"
+                        }
+                    ],
+                },
+                {
+                    "dataset_name": "crimes_2001_to_present",
+                    ...
+                    "count": 429324,
+                        "items": [
+                            {
+                                "count": 370092,
+                                "datetime": "2010-01-01"
+                            },
+                            {
+                                "count": 351483,
+                                "datetime": "2011-01-01"
+                            },
+                            {
+                                "count": 335602,
+                                "datetime": "2012-01-01"
+                            },
+                            {
+                                "count": 306603,
+                                "datetime": "2013-01-01"
+                            },
+                            {
+                                "count": 274258,
+                                "datetime": "2014-01-01"
+                            },
+                            {
+                                "count": 261662,
+                                "datetime": "2015-01-01"
+                            }
+                        ],
+                    }
+                ]
+            }
+
+        ]
+        
+
+## Group Spatial Aggregation
+
+## Heat Map [/grid/?obs_date__ge=2014-01-01&obs_date__le=2014-12-31&dataset_name=311_service_requests_tree_trims]
+
+`GET v1/api/grid`
+
+Create a GeoJSON grid heatmap from an event dataset. See example grid heatmaps in the `Plenario explorer`.
+
+Common Query Syntax
+
+| Paramter Name                     |Required ?      | Default               |                                                           
+|:---------------------:            |----------------|-----------:           | 
+| dataset_name/dataset_name__in     |yes              |n/a    |
+| location_geom__within             |no              |none                   |
+| obs_date__ge & obs_date__le       |no              |90 days ago - today    |
+| [dataset_name]__filter            |no              |none                   |
+
+Query Parameters
+
+All query parameters are optional except for `dataset_name`.
+
+| Paramter Name         |Default        | Description                                                                                                   |
+|:---------------------:|---------------|-----------:                                                                                                   | 
+| resolution            |500            | Square grid size (in meters).                                                                                 |
+| buffer                | 100           | If location###within is a GeoJSON LineString, the size of the buffer around that line to query (in meters).   |
+
+__Respones__
+
+Plenario will output a GeoJSON with a feature for each grid square containing a count property of the number of observations within that square.
+
+### Get Heat map of Chicago [GET]
+
++ Response 200 (application/json)
+
+
+        [
+            {
+               "type":"FeatureCollection",
+               "features":[
+                  {
+                     "geometry":{
+                        "type":"Polygon",
+                        "coordinates":[
+                           [
+                              [
+                                 -87.69635961403962,
+                                 41.876826253090584
+                              ],
+                              [
+                                 -87.69635961403962,
+                                 41.88132164531356
+                              ],
+                              [
+                                 -87.70239743700178,
+                                 41.88132164531356
+                              ],
+                              [
+                                 -87.70239743700178,
+                                 41.876826253090584
+                              ],
+                              [
+                                 -87.69635961403962,
+                                 41.876826253090584
+                              ]
+                           ]
+                        ]
+                     },
+                     "type":"Feature",
+                     "properties":{
+                        "count":7
+                     }
+                  }
+            
+                  ...
+            
+               ]
+            }
+        ]
+
+
+## Choropleth [/shapes/boundaries_neighborhoods/individual_landmarks?obs_date__ge=1900-09-22]
+
+`GET /v1/api/shapes/<polygon_dataset_name>/<point_dataset_name>/`
+
+Given an event dataset and a polygon dataset, return a document of all of the polygons in the polygon dataset together with the counts of the points that intersect them. Like /grid, except using shapes defined in Plenario as opposed to an automatically generated grid. Returns GeoJSON by default.
+
+Query Paramters
+
+| Paramter Name         |Default        | Description                                                       |
+|:---------------------:|---------------|-----------:                                                       | 
+| data_type             |geojson        | Response data format. Current options are geojson and csv         |
+
+
+### Count the number of historical landmarks [GET]
+
++ Response 200 (application/json)
+
+        [
+            {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "geometry": {
+                            "type": "MultiPolygon",
+                            "coordinates": [...]
+                        },
+                        "type": "Feature",
+                        "properties": {
+                            "shape_area": 48492503.1554,
+                            "pri_neigh": "Grand Boulevard",
+                            "sec_neigh": "BRONZEVILLE",
+                            "shape_len": 28196.837157,
+                            "count": 9
+                        }
+                        ...
+                    },
+                ]
+            }
+        
+        ]
+        
+        
+# Group Sensor Network Data
+
+Plenario lets you fetch data from sensor networks in different ways, depending on the needs of your application.
+
+If you’re developing an application to let people explore data (like <a href="https://chicago.opengrid.io/opengrid/"> OpenGrid </a> or Plenario’s demonstration application) <a href="http://docs.plenar.io/#http-data-queries"> the query and aggregate endpoints </a> are designed to respond quickly, making them a good fit for web applications.
+
+If you want to mirror the data from a network, you can use our Websocket API to receive all of a network’s data as it arrives in Plenario. The Websocket API is also helpful for applications that send real-time notifications and for real-time dashboards.
+
+And if you want a bulk export to load into your own database, you can use our download endpoint to specify the time period and sensors you’re interested in, and Plenario will generate a flat file with that data.
+
+## Sensor Network Structure
+
+To make queries against sensor networks, it will help to understand how Plenario structures sensor data. It uses the hierarchy of a network to let you drill down to the data you want to see, filtering by type of sensor, location of nodes, and more.
+
+![name](http://docs.plenar.io/images/sensor-overview.svg)
+
+Each sensor network in Plenario has nodes, devices installed at some physical location. Nodes have sensors that report on physical properties like temperature. Sensors report observations that contain a timestamp and one or more values.
+
+To make it easier to query across different sensors, Plenario uses the concept of features of interest. Features of interest define properties that different sensors can report on. For example, if the tempy9000 and tempmaster_mach2 sensors both report on temperature, you can query on the temperature feature of interest to find temperature observations instead of finding and specifying every temperature sensor in the network.
+
+Features of interest also define the meaning of observations. So you’re guaranteed that two sensors reporting under temperature will have the same unit of measurement (Celsius).
+
+## Querying Data
+You can query sensor data much like you can query tabular data, filtering by time and space and performing aggregations. Unlike tabular data, you can also stream incoming sensor data over Websockets.
+
+## Querying Metadata
+You can also query metadata - networks, nodes, sensors, and features of interest. The existing metadata endpoints tells you everything you need to know to form a valid data query - What are all the nodes that have ever been in this network? What are all the sensors that have ever been installed on a node?
+
+Currently in development is support for more detailed metadata that lets you dig in to how an observation was derived - What constants were used to calibrate this sensor at the time of this observation? What sensors were installed on this node at the time of this observation?
+
+## Common Query Syntax
+
+For endpoints that allow time filtering, you can provide the query parameters start_datetime (observation date greater than or equal to) and end_datetime (less than or equal to). Both must be formatted in ISO 8601 format (YYYY-MM-DDThh:mm:ss, to whatever precision you desire). Note that sensor observations are reported in <a href="https://en.wikipedia.org/wiki/Coordinated_Universal_Time" > Coordinated Universal Time (UTC)</a>.
+
+| paramter      |description        | default   |
+| --------------|:-----------------:| ---------:|
+| start_datetime|start of date range|90 days ago|
+| end_datetime  |end of data range  | now       |
+
+## Metadata Queries
+
+The sensor network metadata endpoints give you all the information you need to construct valid queries on sensor data. Note that the metadata from these endpoints doesn’t necessarily represent the current configuration of each sensor network. For example, if a node is up for a year and then removed, that node will still be visible in the /nodes endpoint. That way, you can still find it and query the data collected while it was up. Similarly, if a sensor is removed from a node, that sensor will still be visible in that node’s sensors property.
+
+## Responses
+| Attribute Name        |Attribute Description          |
+|:---------------------:|------------------------------:| 
+| query                 |Shows values used in the query |
+| message               |Reports warnings(if any).      |
+| total                 |Total number of records found. |
+| data                  |Contains records               |
+| error                 |Contains any errors            |
+
+Either the data or error field will be returned, but not both.
+
+## Sensor Networks [/sensor-networks/array_of_things_chicago]
+
+Retrieve metadata about one or many sensor networks that publish observations to Plenario. If no network is specified, metadata for all sensor networks will be returned.
+
+A sensor network is a collection of sensor nodes maintained by one organization. Within a sensor network’s metadata, you can find the IDs of nodes within the network and all of the features of interest those nodes report on. With this information, you can launch queries on features of interest or drill down further into the metadata by node.
+
+| Attribute Name        |Attribute Description                                                  |
+|:---------------------:|----------------------------------------------------------------------:| 
+| name                  |Sensor network name.                                                   |
+| info                  |JSON containing any information provided by the network maintainer.    |
+| nodes                 |Total number of records found.                                         |
+| sensors               |Contains records                                                       |
+| features              |Array of all features of interest that the network measures.           |
+
+### Network metadata [GET]
+
++ Response 200 (application/json)
+
+        [
+            {
+                "meta": {
+                    "query": {
+                        "network": "array_of_things_chicago"
+                    },
+                    "message": [ ],
+                    "total": 1
+                },
+                "data": [
+                    {
+                        "sensors": [
+                            "TMP112"
+                        ],
+                        "info": { },
+                        "nodes": [
+                            "000",
+                            "011"
+                        ],
+                        "features": [
+                            "temperature"
+                        ],
+                        "name": "array_of_things_chicago"
+                    }
+                ]
+            }
+        ]   
+
+
+
+## Nodes [/sensor-networks/array_of_things_chicago/nodes/0000001e0610ba89]
+
+`GET /v1/api/sensor-networks/<network>/nodes/<node>`
+
+Retrieve metadata about nodes in a sensor network. Nodes are formatted as GeoJSON, with non-spatial metadata stored in the each node’s properties object.
+
+A node is a collection of one or more sensors reporting from a fixed location. Each node belongs to exactly one network.
+
+Get metadata about all nodes in a network,
+    
+`sensor-networks/<network>/nodes`
+
+a specific node,
+
+`sensor-networks/<network>/nodes/<node>`
+
+or all nodes in a network within some geometry .
+
+`sensor-networks/<network>/nodes?geom=<geojson>`
+
+__Common Query Syntax__
+
+| Paramter Name         |Required          | Default    |
+|:---------------------:|------------------|-----------:| 
+| geom                  |no                |none        |
+
+__Responses__
+
+| Attribute Name        |Attribute Description                                                  |
+|:---------------------:|----------------------------------------------------------------------:| 
+| id                    |Node identifier.                                                       |
+| network_name          |Name of the network that maintains the node.                           |
+| info                  |JSON containing any information provided by the network maintainer.    |
+| geometry              |GeoJSON object giving the node’s location.                             |
+| sensors               |Array of all features of interest that the network measures.           |
+
+### Retrieve metadata about nodes [GET]
+
++ Response 200 (application/json)
+
+        [
+            {
+                "meta": {
+                    "query": {
+                        "network": "array_of_things_chicago"
+                    },
+                    "message": [],
+                    "total": 1
+                },
+                "data": [
+                {
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            41.9084,
+                            -87.6214
+                        ]
+                    },
+                    "type": "Feature",
+                    "properties": {
+                        "info": {},
+                        "sensors": [
+                            "tmp112"
+                        ],
+                        "network": "array_of_things_chicago",
+                        "id": "011"
+                     }
+                }
+            }
+        ]
+
+
+## Features of Interest [/sensor-networks/array_of_things_chicago/features/magnetic_field]
+
+`GET /v1/api/sensor-networks/<network>/features/<feature>`
+
+Retrieve features of interest defined within a network.
+
+If no feature is specified, the default is to return metadata for all features of interest within the network
+
+A feature of interest defines properties of the world that sensors observe, like temperature or traffic. Every observation is tagged with a feature of interest, which determines how the observation is formatted. A feature called `traffic_count` might be composed of observed *properties* called `pedestrians`, `cars`, and `bicycles`. Then an observation of `traffic_count` can only report values labeled `pedestrians`, `cars`, and `bicycles`.
+
+A feature of interest must have one or more observed properties. Observed properties contain metadata like data type (float, int, boolean, or string) and unit of measurement that can help you interpret observations. Properties only define scalar values, so for features that are vector-valued, you will find each dimension defined as a separate feature. For example, the definition of `magnetic_field` to the right has separate properties for the x, y, and z dimensions.
+
+__Common Query Syntax__
+
+| Paramter Name         |Required          | Default    |
+|:---------------------:|------------------|-----------:| 
+| geom                  |no                |none        |
+
+__Responses__
+
+| Attribute Name        |Attribute Description                                                                               |
+|:---------------------:|---------------------------------------------------------------------------------------------------:| 
+| name                  |Feature of interest name.                                                                           |
+| properties            |Array of JSON objects containing property names, types, units, and any other necessary description. |                          |
+
+
+### Retrieve features of interest [GET]
+
++ Response 200 (application/json)
+
+        [
+            {
+                "meta": {
+                "query": {
+                    "network": "array_of_things_chicago",
+                    "features": [
+                        "magnetic_field"
+                    ]
+                },
+                "message": [],
+                "total": 1
+            },
+                "data": [
+                {
+                    "name": "magnetic_field",
+                    "observed_properties" : [
+                        {
+                            "type": "float",
+                            "name": "x",
+                            "unit": "gauess"
+                        },
+                        {
+                            "type": "float",
+                            "name" : "y",
+                            "unit" : "gauss"
+                        },
+                        {
+                            "type": "float",
+                            "name": "z",
+                            "unit": "gauss"
+                        }
+                    ]
+                }
+            ]
+        }
+    
+## Sensors [/sensor-networks/array_of_things_chicago/sensors/TMP112]
+`GET /v1/api/sensor-networks/<network>/sensors/<sensor>`
+Retrieve metadata about sensors. If no sensor is specified, returns all sensors from the specified network.
+
+A sensor is a piece of equipment that generates observations. Every observation is tagged with the sensor that generated it. The info object in sensor metadata contains general metadata like a link to the sensor’s datasheet. The properties list contains all of the observed_properties that the sensor reports on, written as .. It is not enough to specify just the feature, because some sensors may report on only a subset of a feature’s properties.
+
+### Retrieve metadata about sensors [GET]
+
++ Response 200 (application/json)
+
+        [
+            {
+                "meta": {
+                    "query": {
+                        "network": "array_of_things",
+                        "sensor": "tmp112"
+                    },
+                    "message": [ ],
+                    "total": 1
+                },
+                "data": [
+                    {
+                    "info": { },
+                    "name": "tmp112",
+                        "properties": [
+                            "temperature.temperature"
+                        ]
+                    }
+                ]
+            }
+        ]
+    
+## Map [/sensor-networks/array_of_things_chicago/map]
+`GET /v1/api/sensor-networks/<network>/map`
+
+Represents the specified network as a tree. This can be helpful when it is necessary to programmatically explore the contents of a network or to see the relationships of its subcomponents.
+
+__Common Query Syntax__
+| Paramter Name         |Required           | Default        |
+|:---------------------:|------------------ |---------------:| 
+| node(s)               |no                 | Node ids       |
+| sensor(s)             |no                | Sensor names   |
+| feature(s)            |no                | Feature names  |
+
+
+### Map the array_of_things_chicago network [GET]
+
++ Response 200 (application/json)
+
+        [
+            {
+                "0000001e0610b9e7": {
+                "apds-9006-020": {
+                    "light_intensity.500nm": "intensity"
+                }, 
+                "bmi160": {
+                "acceleration.x": "accel_x", 
+                "acceleration.y": "accel_y", 
+                "acceleration.z": "accel_z", 
+                "orientation.x": "orient_x", 
+                "orientation.y": "orient_y", 
+                "orientation.z": "orient_z"
+                }
+             },
+                "0000001e0610ba72": {
+                    "apds-9006-020": {
+                        "light_intensity.500nm": "intensity"
+                    }, 
+                    "bmi160": {
+                        "acceleration.x": "accel_x", 
+                        "acceleration.y": "accel_y", 
+                        "acceleration.z": "accel_z", 
+                        "orientation.x": "orient_x", 
+                        "orientation.y": "orient_y", 
+                        "orientation.z": "orient_z"
+                    }
+                }
+            }
+        ]
+    
+   
+## Validation [/sensor-networks/array_of_things_chicago/check?]
+
+`GET /v1/api/sensor-networks/<network>/check`
+
+While all API endpoints will inform you if your query parameters are invalid - it can be helpful to check any combination of parameters for a given network.
+
+### Valid parameters [GET]
+
++ Response 200 (application/json)
+
+        [
+            {
+                "message": "Your query params are good to go."
+            }
+        ]
+    
+## Invalidation [/sensor-networks/array_of_things_chicago/check?node=0000&sensor=bmp181&feature=atmospherik_pressure]
+
+### Invalid paramters [GET]
+
++ Response 200 (application/json)
+
+        [
+            {
+                "error": {
+                    "feature": [
+                        "atmospherik_pressure does not exist"
+                    ],
+                    "node": [
+                        "0000 does not exist"
+                    ],
+                    "sensor": [
+                        "bmp181 does not exist"
+                    ]
+                },
+                "meta": {
+                    "query": {
+                        "node": "0000",
+                        "feature": "atmospherik_pressure",
+                        "sensor": "bmp181"
+                    }
+                }
+            }
+        ]
+
+## Raw Observations [/sensor-networks/array_of_things_chicago/query?feature=temperature&sensors=HTU21D&nodes=0000001e0610ba89,0000001e0610ba72]
+
+You must specify one feature of interest in the query parameters. All other parameters are optional. Response limit is 1000 by default, but can be set to a maximum of 10000.
+
+__Common Query Syntax__
+
+| Paramter Name         |Required           | Default               |
+|:---------------------:|------------------ |---------------:       | 
+| features              |yes                | none                  |
+| nodes                 |no                 | all nodes in network  |
+| sensors               |no                 | all sensors in network|
+| geom                  |no                 | none                  |
+| start_datetime        |no                 | 1 day ago             |
+| end_datetime          |no                 | now                   |
+| filter                |no                 | none                  |
+| limit                 |no                 | 1000                  |
+
+__Filter parameter__
+
+A single condition that applies to one property can be expressed in the following syntax: `{"op":"<operator>", "prop":"<property>", "val":"<target_value>"}`, where `<property>` must be a property of the feature specified by the `feature` parameter.
+
+You can use the following binary operators:
+
+| operator      |description                                        |
+| --------------|:-------------------------:                        |
+| eq            |equal to(==)                                       |
+| gt            |greater than (>)                                   |
+| ge            |greater than or equal to (>=)                      |
+| lt            |less than (<)                                      |
+| le            |less than or equal to (<=)                         |
+| ne            |not equal(!=)                                      |
+| in            |within a list of provided values like 0560,0110    |
+| like          |Match string pattern                               |
+| ilike         |Match string pattern, case insensitive             |
+
+    > `like` and `ilike` match patterns using the SQL LIKE operator. That lets you use `%` and `_` as wildcard characters. `%` matches a string of any length, while `_` matches exactly one character.
+
+__Responses__
+
+| Attribute Name        |Attribute Description                                  |
+|:---------------------:|------------------------------------------------------:| 
+| query                 |Shows values used in the query.                        |                                                                     |
+| message               |Reports warnings (if any).                             |
+| total                 | Total numbe of records found.                         |
+| data                  | Contains records                                      |
+| error                 | Contains any errors                                   |
+
+either the `data` or `error` field will be returned, not both
+
+__Data Format__
+
+| Attribute Name        |Attribute Description                                                                                      |
+|:---------------------:|----------------------------------------------------------------------------------------------------------:| 
+| node                  |Feature of interest name.                                                                                  |
+| sensor                |Array of JSON objects containing proper                                                                    |
+| features              |Feature of interest that the result measures.                                                              |
+| datetime              |Time at which the reading was taken                                                                        |
+| results               |JSON of the feature of interest’s properties and measured values.                                          |
+| meta_id               |Integer identifier for the node configuration and calibration information that generated the reading.      |
+
+
+### Get observations [GET]
+
++ Response 200 (application/json)
+    
+        [
+            {
+                "meta": {
+                    "query": {
+                        "start_datetime": "2016-06-08T17:55:32.503905",
+                        "feature": "temperature",
+                        "limit": 1000,
+                        "end_datetime": "2016-09-06T17:55:32.503935",
+                        "offset": 0,
+                        "sensors": [
+                            "htu21d"
+                        ],
+                        "network": "array_of_things",
+                        "nodes": [
+                            "0000001e0610ba89",
+                            "0000001e0610ba72"
+                        ]
+                    },
+                    "message": [],
+                    "total": 1000
+                },
+                "data": [
+                    {
+                        "feature": "temperature",
+                        "node": "011",
+                        "sensor": "htu21d",
+                        "meta_id": 54,
+                        "results": {
+                            "temperature": 30.12
+                        },
+                        "datetime": "2016-08-25T00:54:18"
+                    }
+                ]
+            }
+        ]
+  
+  
+## Timeseries [/sensor-networks/array_of_things_chicago/aggregate{?feature,node,function,sensors}] 
+
+`/v1/api/sensor-networks/<network>/aggregate?<args>`
+
+This endpoint lets you see historical trends by aggregating individual node observations up to larger units of time. This is done by applying one of the provided aggregate functions on all observations found within a specified window of time.
+
+__Endpoint-Specific Paramters__
+
+| Paramter Name         |Required           | Default               |Description                                                        |
+|:---------------------:|------------------ |-----------------------|-------------------------------------------------------------------| 
+| node(s)               | Yes               | None                  |Target node                                                        |
+| function              | Yes               | None                  |Aggregate function to apply: see table below                       |
+| feature               | Yes               | None                  |Node feature to aggregate                                          |
+| sensors               | No                | All sensors           |Narrows features to only those on these sensors                    |
+| start_datetime        | No                | Yesterday's datetime  |Beginning of observation window                                    |
+| end_datetime          | No                | Current datetime      |End of observation window                                          |  
+| agg                   | No                | hour                  |Size of time slices: one of minute, hour, day, week, month, year   |
+
+__Responses__
+
+| Attribute Name        |Attribute Description                                          |
+|:---------------------:|--------------------------------------------------------------:| 
+| meta                  |Holds meta information about the query and its result          |
+| meta.query            |Query parameters used                                          |
+| meta.message          |Server issued information such as warnings                     |
+| meta.total            |Total number of aggregate records retrieved                    |
+| data                  |Holds result information from a successful query               |
+| error                 |Holds error information from a failed query                    |
+
+__Available Aggregate Functions__
+
+| Key | Description         |
+|----:| --------------------|
+| avg | average             |
+| std | standard deviation  |
+| var | variance            | 
+| min | minimum             |
+| max | maximum             | 
+| med | median              |
+
+
+### Aggregate observations. [GET]
+
++ Parameters
+    + `feature`:`gas_concentration`(string) - feature name
+    + `node`: `0000001e0610b9e7` (string) - node name
+    + function : `std` (string) - function 
+    + `sensors` : `chemsense` (string) sensor name
+
++ Response 200 (application/json) 
+
+        [
+            {
+                "meta": {
+                    "query": {
+                        "node": "node_dev_2",
+                        "function": "std",
+                        "start_datetime": "2016-09-22T15:42:33.147232",
+                        "agg": "hour",
+                        "feature": [
+                            "gas_concentration"
+                        ],
+                        "end_datetime": "2016-09-23T15:42:33.147302",
+                        "sensors": [
+                            "sensor_dev_3"
+                        ],
+                        "network": "plenario_development"
+                    },
+                    "message": [ ],
+                    "total": 24
+                },
+                "data": [
+                    {
+                      "n2": {
+                          "std": 0.285770076888335,
+                          "count": 448
+                      },
+                      "co2": {
+                          "std": 0.289637279773448,
+                          "count": 448
+                      },
+                        "time_bucket": "2016-09-22T15:00:00"
+                    },
+                    ...
+                    {
+                      "n2": {
+                          "std": 0.281392701124023,
+                          "count": 287
+                      },
+                      "co2": {
+                          "std": 0.299980627541392,
+                          "count": 287
+                      },
+                        "time_bucket": "2016-09-23T14:00:00"
+                    }
+                ]
+            }
+        ]
+        
+##### Group Bulk Data Export
+
+`GET /v1/api/sensor-networks/<network>/download`
+
+Because the <a href="http://docs.plenar.io/#raw-observations" >raw data endpoint /query </a> is designed to respond quickly, it is limited to 10000 observations. It also only lets you query over one feature of interest.
+
+If you want a larger dump of data, potentially over a long period of time and over many features, you can use /download to request a bulk export.
+
+__Common Query Syntax__
+| Paramter Name         |Required           | Default               |
+|:---------------------:|------------------ |---------------:       | 
+| features              |no                 | all network features  |
+| nodes                 |no                 | all nodes in network  |
+| sensors               |no                 | all sensors in network|
+| geom                  |no                 | none                  |
+| start_datetime        |no                 | 1 day ago             |
+| end_datetime          |no                 | now                   |
+
+# Group Streaming Data Queries 
+
+Plenario uses the <a href="https://github.com/socketio/socket.io-protocol"> socket.io protocol </a> to provide near real-time streaming of sensor data. A user may open a socket and specify nodes, features of interest, and sensors they’re interested in. Plenario will push observations that satisfies their filters to their socket. If no parameters are specified, the default is to stream all data from the array_of_things network.
+
+Any invalid parameters and other errors will be emitted as JSON `internal_error` events and no connection will be created. If all parameters are valid and no errors occur, the client will begin receiving `data` events from the socket.
+
+__Common Query Syntax__
+| Paramter Name         |Required           | Default                               |
+|:---------------------:|------------------ |------------------------------:        | 
+| network               |Yes               | none                                   |
+| nodes                 |no                 | all nodes in network                  |
+| sensors               |no                 | all sensors in network                |
+| features              |no                 | all features reported on by network   |
+
+```{
+  "type": "sensorObservations",
+  "attributes": {
+    "sensor": "hih4030",
+    "node": "0000001e0610ba89",
+    "network": "array_of_things_chicago",
+    "datetime": "2017-07-13 17:14:35",
+    "meta_id": 0,
+    "feature": "relative_humidity",
+    "properties": {
+      "humidity": 431
+    }
+  }
+}
+```
+    
+    Start a socket client that will print any internal_error and all temperature data events from the HTU21D sensor on nodes 00A and 00B
+
+hello
+
+# group hello
+
+## Sample Node.js client using the socket.io-client module [/temp/hjv/jvj]
+
+hello
+
+### List All Questions [GET]
+
++ Response 200 (application/json)
+
+        [
+            var socket = require('socket.io-client')('ws://streaming.plenar.io?' +
+                'network=array_of_things_chicago&' +
+                'features=temperature&' +
+                'nodes=0000001e0610ba89' +
+                'sensors=HTU21D');
+            
+            socket.on('data', function (data) {
+                console.log(data);
+            });
+            socket.on('internal_error', function (err) {
+                console.log(err);
+            });
+        ]
+
+    
+
+__Sample Python client using the socketIO-client package__
+
+```python
+import json
+from socketIO_client import SocketIO
+
+socketIO = SocketIO("streaming.plenar.io", params={
+    'network': 'array_of_things_chicago',
+    'features': 'temperature',
+    'sensors': ['HTU21D'],
+    'nodes': ['0000001e0610ba89']})
+
+def on_data(data):
+    print(json.dumps(data))
+
+def on_error(err):
+    print(json.dumps(err))
+
+socketIO.on('data', on_data)
+socketIO.on('internal_error', on_error)
+socketIO.wait()
+```
+
+__Sample Java client using the socket.io-client-java package__
+```JAVA
+import io.socket.client.*;
+import io.socket.emitter.*;
+import org.json.JSONObject;
+
+public class Main {
+
+    public static void main(String[] args) throws Exception {
+
+        final Socket socket = IO.socket("http://streaming.plenar.io?network=array_of_things_chicago");
+        socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
+
+            @Override
+            public void call(Object... args) {}
+
+        }).on("data", new Emitter.Listener() {
+
+            @Override
+            public void call(Object... args) {
+                JSONObject observation = (JSONObject)args[0];
+                System.out.println(observation);
+            }
+
+        }).on(Socket.EVENT_DISCONNECT, new Emitter.Listener() {
+
+            @Override
+            public void call(Object... args) {}
+
+        });
+        socket.connect();
+    }
+}
+```
+
+## Group Weather
+
+`GET v1/api/weather-stations/`
+
+Query weather stations from NOAA’s <a href="https://www.ncdc.noaa.gov/?prior=N"> Quality Controlled Local Climatological Data </a>
+
+## Weather stations [/weather-stations/?state=IL]
+
+All query parameters are optional.
+
+| Parameter         |Description                                                |
+| --------------    |:-------------------------:                                |
+| station_name      |Name of weather station                                    |
+| call_sign         |Call sign of weather station                               |
+| wban_code         |Weather Bureau Army Navy (WBAN) code of weather station.   |
+| begin             |Date of first weather observation                          |
+| end               |Date of last weather observation                           |
+| elevation         |Elevation of station (in feet)                             |
+| country           |Country name                                               |
+| state             |Two-digit state code                                       |
+| location          |Latitude and longitude location of weather station. Can be queried with a GeoJSON shape using `location__within`.           |
+
+For any given parameter above, the query can be modified with attribute operators.
+
+### A list of weather stations in Illinois. [GET]
+
++ Response 200 (application/json)
+
+        [
+            {
+            "meta": {
+                "status": "ok",
+                "query": {
+                    "state": "IL"
+                },
+                "message": ""
+            },
+            "objects": [
+                {
+                    "begin": "2006-01-01",
+                    "elevation": 178,
+                    "country": "US",
+                    "state": "IL",
+                    "location": {
+                        "type": "Point",
+                        "coordinates": [
+                            -88.419,
+                            41.425
+                        ]
+                    },
+                    "end": "2014-03-13",
+                    "station_name": "MORRIS MUNI J R WAS",
+                    "call_sign": "KC09",
+                    "wban_code": "04867"
+                },
+                ...
+                ]
+            }
+        ]
+
+
+## Weather daily [/weather/daily/?wban_code=14819&date__ge=2016-06-01]
+
+`GET /v1/api/weather/daily`
+
+Query daily weather observations from NOAA’s <a href="https://www.ncdc.noaa.gov/?prior=N">Quality Controlled Local Climatological Data </a>.
+
+__Query Parameters__
+
+All query parameters are optional.
+
+| Parameter         |Description                                                |
+| --------------    |:-------------------------:                                |
+| wban_code         |Weather Bureau Army Navy (WBAN) code of weather station.   |
+| date              |Date of the observations in SQL date form (e.g. ‘2003-10-05’) |
+| temp_max          |The maximum temperature for the day in Farenheit             |
+| temp_min          |The minimum temperature for the day in Farenheit    |
+| temp_avg          |The average temperature for the day in Farenheit   |
+| departure_from_normal         |The departure from the normal average temperature for the day in Fahrenheit                      |
+| dewpoint_avg          |The average dewpoint, i.e. the temperature at which water vapor condenses into water at the same rate at which it evaporates (in Fahrenheit) |
+| wetbulb_avg           |The average temperature the air would have had at 100% humidity (in Fahrenheit)   |
+| weather_types         |A multidimensional PostgreSQL array which contains values from Federal Meterological Handbook No. 1: Surface Weather Observations and Reports, in the following six-tuple: [vicinity, intensity, desc, precip, obscuration, other]. For example, in the event of an observation of a thunderstorm with heavy rain and snow with fog, one might see: [NULL, +, TS, RA, DG, NULL].But if it were also snowing, there would be an additional six-tuple: [NULL, NULL, NULL, SN, NULL, NULL] |
+| snowice_depth         |In inches, the current depth of snow/ice. A 'trace’ (T) is encoded as 0.005 |
+| snowice_waterequiv    |This would be the depth of water in inches if you could melt the snowpack instantaneously |
+| snowfall              |Snowfall in inches on this day   |
+| precip_total          |Total precipitation in inches, during the 24-hour period ending in local standard time   |
+| station_pressure                          |Average pressure in inches of mercury |
+| sealevel_pressure                         |Average sea-level pressure in inches of mercury |
+| resultant_windspeed                       |The magnitude (in miles per hour) of “resultant” wind, which is obtained by converting recorded wind speeds and directions over a 24-hour period into a single vector with a single magnitude and direction  |
+| resultant_winddirection_cardinal          |The above wind direction converted to human-readable direction, e.g. N, NE, NNE, NNW  |
+| max5_windspeed                            |The maximum windspeed of recorded 5-second averages (in degrees)  |
+|max5_winddirection                         |The maximum windspeed of recorded 5-second averages (in degrees)   |
+| max5_direction_cardinal                   |The maximum windspeed of recorded 5-second averages (in cardinal directions)  |
+| max2_windspeed                            |The maximum windspeed of recorded 2-minute averages (in degrees)   |
+| max2_winddirection                        |The maximum windspeed of recorded 2-minute averages (in degrees)  |
+| max2_direction_cardinal                   |The maximum windspeed of recorded 2-minute averages (in cardinal directions) |
+
+For any given parameter above, the query can be modified with attribute operators.
+
+__Responses__
+
+Weather observations and attributes (described above) that match the provided query parameters. Response is limited to 500 results, which can be paginated by using the offset parameter.
+
+### All daily weather observations at Chicago’s Midway Airport [GET]
+
++ Response 200 (application/json)
+
+        [
+        
+            {
+                "meta": {
+                    "status": "ok",
+                    "query": {
+                        "date__ge": "2016-06-01",
+                        "wban_code": "14819"
+                    },
+                    "message": "",
+                    "total": 30
+                },
+                "objects": [
+                    {
+                        "observations": [
+                            {
+                                "max5_direction_cardinal": "VRB",
+                                "max2_windspeed": null,
+                                "snowfall": null,
+                                "dewpoint_avg": null,
+                                "date": "2016-06-30",
+                                "temp_avg": null,
+                                "id": 7214974,
+                                "max2_direction_cardinal": "VRB",
+                                "temp_max": null,
+                                "max2_winddirection": "VRB",
+                                "wetbulb_avg": null,
+                                "latitude": null,
+                                "max5_windspeed": null,
+                                "avg_windspeed": null,
+                                "old_station_type": null,
+                                "max5_winddirection": "VRB",
+                                "precip_total": null,
+                                "resultant_winddirection": "VRB",
+                                "departure_from_normal": null,
+                                "sealevel_pressure": null,
+                                "resultant_winddirection_cardinal": "VRB",
+                                "weather_types": null,
+                                "snowice_depth": null,
+                                "longitude": null,
+                                "snowice_waterequiv": null,
+                                "resultant_windspeed": null,
+                                "temp_min": null,
+                                "station_pressure": null,
+                                "wban_code": "14819"
+                            },
+                            ...
+                        ],
+                        "station_info": {
+                            "begin": "1928-10-04",
+                            "elevation": 188.4,
+                            "country": "US",
+                            "state": "IL",
+                            "location": {
+                                "type": "Point",
+                                "coordinates": [
+                                    -87.752,
+                                    41.786
+                                ]
+                            },
+                            "end": "2014-03-13",
+                            "station_name": "CHICAGO/MIDWAY",
+                            "call_sign": "KMDW",
+                            "wban_code": "14819"
+                        }
+                    }
+                ]
+            }
+        ]
+# Group Providers
+
+This section is specifically for those who are providers of sensor network data to Plenario. It assumes that you have received an administrative account on apiary.
+
+## About 
+
+We ensure Plenario does not ingest junk data by filtering the incoming stream. This filtering is based on metadata descriptions of sensor networks which Plenario utilizes to store and query observations in a meaningful way.
+
+If you would rather use the browsable api, it’s still recommended to skim this section just to see an example of what valid data looks like, as well as how all the pieces fit together.
+
+## Adding a network
+
+`POST /api/networks/?format=vnd.api%2Bjson`
+
+Plenario first needs to know what network a node will belong to. If you intend to add nodes to an existing network, you can skip this section.
+
+| Parameter         |Description                                                |
+| --------------    |:-------------------------:                                |
+| name              | Unique name for a network                                 |
+| info              | Miscellaneous metadata about the network in the form of JSON |
+
+```
+curl "http://apiary.plenar.io/api/networks/?format=vnd.api%2Bjson" \
+  --user username:password \
+  --data "name=mysensornetwork&info={}"
+  ```
+ 
+## Adding a feature
+
+`POST /api/features/?format=vnd.api%2Bjson`
+
+If any of your node’s sensors are reporting something we do not have a feature for, you can add it like this. Here we’ve created a hypothetical feature for sensors which report on ‘sound’ as 'intensity’ and 'duration’.
+
+| Parameter         |Description                                                |
+| --------------    |:-------------------------:                                |
+| name              | Unique name for a network                                 |
+| observed_properties| List of json objects containing the 'name’ and 'type’ keys |
+
+Values for the type key must be an accepted Redshift data type.
+
+```
+curl "http://apiary.plenar.io/api/features/?format=vnd.api%2Bjson" \
+  --user username:password \
+  --data 'name=sound&observed_properties=[
+      {"name": "intensity", "type": "double precision"},
+      {"name": "duration", "type": "double precision"}
+    ]'
+```
+
+## Adding a sensor
+
+`POST /api/sensors/?format=vnd.api%2Bjson`
+
+This adds a sound sensor that reports values as 'dur’ and 'val’. Given that we have a sound feature that we created earlier, we go ahead and map these values to that feature. Now this sensor’s sound values can be queried alongside any other sensor that also reports sound values.
+
+| Parameter         |Description                                                |
+| --------------    |:-------------------------:                                |
+| name              | Unique name for a network                                 |
+| observed_properties| Map of reported sensor values to feature properties |
+
+```
+curl "http://apiary.plenar.io/api/sensors/?format=vnd.api%2Bjson" \
+  --user username:password \
+  --data 'name=snd3000&observed_properties={
+      "dur": "sound.duration",
+      "val": "sound.intensity"
+    }&info={}'
+```
+
+## Adding a node
+
+`POST /api/nodes/?format=vnd.api%2Bjson`
+
+Finally we can register nodes. Here we’ve created a node that has both a sound and a temperature sensor.
+
+| Parameter         |Description                                                |
+| --------------    |:-------------------------:                                |
+| id              | Unique name for a network                                 |
+| sensor_network    | Name of the network this node belongs to  |
+| info              | Miscellaneous information about the node |
+| sensors           | Name of a sensor contained by this node   |
+| location          | Physical location of the node as GeoJSON or WKT |
+
+```
+curl "http://apiary.plenar.io/api/nodes/?format=vnd.api%2Bjson" \
+  --user username:password \
+  --data "id=mynode2&sensor_network=plenario_development&info={}\
+    &sensors=snd3000&sensors=tmp112&location={\
+      \"type\": \"Point\",\
+      \"coordinates\": [-104.7858045, 39.8087029]\
+    }"
+```
+
+__Rporting an observation__
+
+With all this metadata in place, Plenario can begin to ingest data that you send to its observation stream. Observations are pushed using any of Amazon’s Kinesis client libraries. An observation represents a single report made by a sensor. They must be formatted as json, with the observation values matching the observation property map defined for that sensor.
+
+```{
+  "network": "mysensornetwork",
+  "meta_id": "version_id",
+  "node_id": "mynodeid",
+  "sensor": "snd3000",
+  "datetime": "2017-01-01T00:00:00",
+  "data": {
+    "dur": 3.0,
+    "val": 15.7
+  }
+}
+```
+__Python 3__
+
+```import boto3
+
+kinesis_client = boto3.client(
+    'kinesis',
+    aws_access_key_id=AWS_ACCESS_KEY,
+    aws_secret_access_key=AWS_SECRET_KEY,
+    region_name='us-east-1',
+)
+
+kinesis_client.put_record(**{
+    'StreamName': 'ObservationStream',
+    'PartitionKey': 'arbitrary',
+    'Data': json.dumps(payload)
+})
+```
+
+## Group Links
+
+<a href="http://www.urbanccd.org/#urbanccd" > UrbanCCD </a>
+
+<a href="http://www.uchicago.edu/" > University of Chicago </a>
+
+<a href="http://plenar.io/" > Plenario </a>
+
+<a href="https://apiary.io/" > Docs powered by </a>
