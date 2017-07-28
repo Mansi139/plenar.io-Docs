@@ -79,7 +79,6 @@ Many - but not all - of Plenario’s datasets also have a temporal component. Si
        
 + Response 200 (application/json)
         
-        
         [
             {
                 "meta": {
@@ -115,8 +114,6 @@ Many - but not all - of Plenario’s datasets also have a temporal component. Si
                 }
             }
         ]
-
-
 
 ## Group Dataset Types
 
@@ -235,7 +232,7 @@ Sensor networks are collections of sensor nodes that report on physical phenomen
         ]
         
         
-## Group Datasets That Dont Fit
+## Group Datasets That Don't Fit
 
 You can probably think of examples of spatial datasets that don’t fit the above types. What about neighborhood unemployment rates? That has a static spatial component plus a timeseries. Or urban bike share trips? A single record should have a point in space and a timestamp for both the origin and the destination. We can’t support these fully yet, but we’re always working to expand the types of datasets Plenario can handle.
 
@@ -1637,14 +1634,34 @@ __Common Query Syntax__
 
 # Group Streaming Data Queries 
 
-Plenario uses the <a href="https://github.com/socketio/socket.io-protocol"> socket.io protocol </a> to provide near real-time streaming of sensor data. A user may open a socket and specify nodes, features of interest, and sensors they’re interested in. Plenario will push observations that satisfies their filters to their socket. If no parameters are specified, the default is to stream all data from the array_of_things network.
+## Sample Node.js client using the socket.io-client module
+
+```
+        {
+            var socket = require('socket.io-client')('ws://streaming.plenar.io?' +
+                'network=array_of_things_chicago&' +
+                'features=temperature&' +
+                'nodes=0000001e0610ba89' +
+                'sensors=HTU21D');
+            
+            socket.on('data', function (data) {
+                console.log(data);
+            });
+            socket.on('internal_error', function (err) {
+                console.log(err);
+            });
+        }
+```
+        
+Plenario uses the <a href="https://github.com/socketio/socket.io-protocol"> socket.io protocol </a> to provide near real-time streaming of sensor data. A user may open a socket and specify nodes, features of interest, and sensors they’re interested in. Plenario will push observations that satisfies their filters to their socket. If no parameters are specified, the default is to stream all data from the array_of_things network.___
 
 Any invalid parameters and other errors will be emitted as JSON `internal_error` events and no connection will be created. If all parameters are valid and no errors occur, the client will begin receiving `data` events from the socket.
 
 __Common Query Syntax__
+
 | Paramter Name         |Required           | Default                               |
 |:---------------------:|------------------ |------------------------------:        | 
-| network               |Yes               | none                                   |
+| network               |Yes                | none                                  |
 | nodes                 |no                 | all nodes in network                  |
 | sensors               |no                 | all sensors in network                |
 | features              |no                 | all features reported on by network   |
@@ -1666,35 +1683,6 @@ __Common Query Syntax__
 ```
     
     Start a socket client that will print any internal_error and all temperature data events from the HTU21D sensor on nodes 00A and 00B
-
-hello
-
-# group hello
-
-## Sample Node.js client using the socket.io-client module [/temp/hjv/jvj]
-
-hello
-
-### List All Questions [GET]
-
-+ Response 200 (application/json)
-
-        [
-            var socket = require('socket.io-client')('ws://streaming.plenar.io?' +
-                'network=array_of_things_chicago&' +
-                'features=temperature&' +
-                'nodes=0000001e0610ba89' +
-                'sensors=HTU21D');
-            
-            socket.on('data', function (data) {
-                console.log(data);
-            });
-            socket.on('internal_error', function (err) {
-                console.log(err);
-            });
-        ]
-
-    
 
 __Sample Python client using the socketIO-client package__
 
@@ -1720,6 +1708,7 @@ socketIO.wait()
 ```
 
 __Sample Java client using the socket.io-client-java package__
+
 ```JAVA
 import io.socket.client.*;
 import io.socket.emitter.*;
